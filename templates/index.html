@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Network Monitoring</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+       table, h1{
+            text-align: center;
+            color: purple;
+        }
+    </style>
+</head>
+<body>
+    <h1>Network Monitoring Tool</h1>
+
+    <div id="device-list">
+        <h2>Devices:</h2>
+        <table id="device-table" border="3px">
+            <thead>
+                <tr>
+                    <th>Hostname</th>
+                    <th>IP Address</th>
+                    <th>Status</th>
+                    <th>Last Seen</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div id="bandwidth-chart">
+        <h2>Bandwidth Usage:</h2>
+        <canvas id="myChart"></canvas>
+    </div>
+
+    <script>
+        // Function to fetch and display device data
+        function fetchDevices() {
+            fetch('/api/devices')
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('device-table').getElementsByTagName('tbody')[0];
+                    tableBody.innerHTML = '';
+                    data.forEach(device => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${device.hostname}</td>
+                            <td>${device.ip_address}</td>
+                            <td>${device.status}</td>
+                            <td>${device.last_seen}</td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                });
+        }
+
+        // Function to fetch and display bandwidth data
+        function fetchBandwidthData(deviceId) {
+            fetch(`/api/bandwidth/${deviceId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const labels = data.map(point => point.timestamp);
+                    const uploadSpeeds = data.map(point => point.upload_speed);
+                    const downloadSpeeds = data.map(point => point.download_speed);
+
+                    const ctx = document.getElementById('myChart').getContext('2d');
+                    const myChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Upload Speed',
+                                data: uploadSpeeds,
+                                borderColor: 'red',
+                                fill: false
+                            }, {
+                                label: 'Download Speed',
+                                data: downloadSpeeds,
+                                borderColor: 'blue',
+                                fill: false
+                            }]
+                        },
+                        options: {
+                            // Chart.js options
+                        }
+                    });
+                });
+        }
+
+        // Initial data fetching
+        fetchDevices();
+        // Fetch bandwidth data for the first device (you can change this)
+        fetchBandwidthData(1);
+
+        // Periodically update device and bandwidth data (adjust interval as needed)
+        setInterval(fetchDevices, 5000);
+        setInterval(() => {
+            // Fetch bandwidth data for the first device
+            fetchBandwidthData(1);
+        }, 10000);
+    </script>
+</body>
+</html>
